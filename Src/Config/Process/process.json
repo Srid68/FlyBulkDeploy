@@ -1,0 +1,8 @@
+{
+  "ProcessList": [
+    {
+      "ConfigPath": "process_appsample.json",
+      "Process": true
+    }
+  ]
+}

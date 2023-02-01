@@ -1,0 +1,134 @@
+{
+  "ApiUser": "",
+  "ApiToken": "",
+  "OrgName": "personal",
+  "AppName": "appweb",
+  "ActionInterval": 1000,
+  "MachineConfig": [
+    {
+      "DockerImage": "registry.fly.io/appweb:latest",
+      "Action": "CreateOrUpdate",
+      "ActionHelp": "Action Values are | Stop | Delete | Destroy | Create | Update | CreateOrUpdate",
+      "ActionType": "Direct",
+      "ActionTypeHelp": "Action Type Values are Direct | Rollup (Create New, Destroy Old) (Valid only for Action Update)",
+      "MachineCreateTemplate": "machine_create.json",
+      "MachineUpdateTemplate": "machine_update.json",
+      "EnvConfig": [
+        {
+          "EnvName": "INITIAL_TIME_IN_SEC",
+          "EnvValue": "30"
+        },
+        {
+          "EnvName": "IDLE_TIME_IN_SEC",
+          "EnvValue": "30"
+        }
+      ]
+    }
+  ],
+  "RegionConfig": [
+    {
+      "RegionCode": "sin",
+      "Process": true
+    },
+    {
+      "RegionCode": "ams",
+      "Process": false
+    },
+    {
+      "RegionCode": "cdg",
+      "Process": false
+    },
+    {
+      "RegionCode": "den",
+      "Process": false
+    },
+    {
+      "RegionCode": "dfw",
+      "Process": false
+    },
+    {
+      "RegionCode": "ewr",
+      "Process": false
+    },
+    {
+      "RegionCode": "fra",
+      "Process": false
+    },
+    {
+      "RegionCode": "gru",
+      "Process": false
+    },
+    {
+      "RegionCode": "hkg",
+      "Process": false
+    },
+    {
+      "RegionCode": "iad",
+      "Process": false
+    },
+    {
+      "RegionCode": "jnb",
+      "Process": false
+    },
+    {
+      "RegionCode": "lax",
+      "Process": false
+    },
+    {
+      "RegionCode": "lhr",
+      "Process": false
+    },
+    {
+      "RegionCode": "maa",
+      "Process": false
+    },
+    {
+      "RegionCode": "mad",
+      "Process": false
+    },
+    {
+      "RegionCode": "mia",
+      "Process": false
+    },
+    {
+      "RegionCode": "nrt",
+      "Process": false
+    },
+    {
+      "RegionCode": "ord",
+      "Process": false
+    },
+    {
+      "RegionCode": "otp",
+      "Process": false
+    },
+    {
+      "RegionCode": "scl",
+      "Process": false
+    },
+    {
+      "RegionCode": "sea",
+      "Process": false
+    },
+    {
+      "RegionCode": "sjc",
+      "Process": false
+    },
+    {
+      "RegionCode": "syd",
+      "Process": false
+    },
+    {
+      "RegionCode": "waw",
+      "Process": false
+    },
+    {
+      "RegionCode": "yul",
+      "Process": false
+    },
+    {
+      "RegionCode": "yyz",
+      "Process": false
+    }
+  ],
+}
