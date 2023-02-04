@@ -358,27 +358,30 @@ namespace Arshu.AppBak
             bool ret = false;
             long methodStartTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            #region Append Env Variables to Config
-
-            if (machineConfig.EnvConfig.Count > 0)
+            try
             {
-                if (createConfigJson.ContainsKey("config") == true)
+                #region Append Env Variables to Config
+
+                if (machineConfig.EnvConfig.Count > 0)
                 {
-                    JsonObject? configObject = createConfigJson["config"] as JsonObject;
-                    if (configObject != null)
+                    if (createConfigJson.ContainsKey("config") == true)
                     {
-                        if (configObject.ContainsKey("env") == true)
+                        JsonObject? configObject = createConfigJson["config"] as JsonObject;
+                        if (configObject != null)
                         {
-                            JsonObject? envObject = configObject["env"] as JsonObject;
-                            if (envObject != null)
+                            if (configObject.ContainsKey("env") == true)
                             {
-                                foreach (var itemEnv in machineConfig.EnvConfig)
+                                JsonObject? envObject = configObject["env"] as JsonObject;
+                                if (envObject != null)
                                 {
-                                    if (envObject.ContainsKey(itemEnv.EnvName) == false)
+                                    foreach (var itemEnv in machineConfig.EnvConfig)
                                     {
-                                        if (itemEnv.EnvValue != null)
+                                        if (envObject.ContainsKey(itemEnv.EnvName) == false)
                                         {
-                                            envObject.Add(itemEnv.EnvName, itemEnv.EnvValue);
+                                            if (itemEnv.EnvValue != null)
+                                            {
+                                                envObject.Add(itemEnv.EnvName, itemEnv.EnvValue);
+                                            }
                                         }
                                     }
                                 }
@@ -386,81 +389,84 @@ namespace Arshu.AppBak
                         }
                     }
                 }
-            }
-            #endregion
+                #endregion
 
-            #region Create Machine Request
+                #region Create Machine Request
 
-            string requestString = SerializeObject(createConfigJson);
-            requestString = requestString.Replace("{{$MachineName}}", machineName);
-            requestString = requestString.Replace("{{$Region}}", machineRegion);
-            requestString = requestString.Replace("{{$AppImage}}", machineConfig.DockerImage);
-
-            #endregion
-
-            HttpClient httpClient = GetClient(FlyApiHostUrl);
-            {
-                httpClient.DefaultRequestHeaders.Accept.Clear();
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-
-                #region Create Machine
-
-                StringContent postData = new StringContent(requestString);
-                postData.Headers.Remove("Content-Type");
-                postData.Headers.Add("Content-Type", "application/json");
-
-                var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines", postData).Result;
-
-                #region Process Response
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
-                };
-                JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
-                string errorMessage = "";
-                if ((retObj != null) && (retObj.ContainsKey("error")))
-                {
-                    var errorObj = retObj["error"];
-                    if (errorObj != null)
-                    {
-                        errorMessage = errorObj.ToString();
-                    }
-                }
+                string requestString = SerializeObject(createConfigJson);
+                requestString = requestString.Replace("{{$MachineName}}", machineName);
+                requestString = requestString.Replace("{{$Region}}", machineRegion);
+                requestString = requestString.Replace("{{$AppImage}}", machineConfig.DockerImage);
 
                 #endregion
 
-                if (response.IsSuccessStatusCode)
+                HttpClient httpClient = GetClient(FlyApiHostUrl);
                 {
-                    long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
-                    long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
 
-                    string? privateIp = "";
-                    if (retObj != null)
+                    #region Create Machine
+
+                    StringContent postData = new StringContent(requestString);
+                    postData.Headers.Remove("Content-Type");
+                    postData.Headers.Add("Content-Type", "application/json");
+
+                    var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines", postData).Result;
+
+                    #region Process Response
+
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+
+                    var options = new JsonSerializerOptions
                     {
-                        if (retObj.ContainsKey("private_ip") == true)
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
+                    string errorMessage = "";
+                    if ((retObj != null) && (retObj.ContainsKey("error")))
+                    {
+                        var errorObj = retObj["error"];
+                        if (errorObj != null)
                         {
-                            privateIp = ((string?)retObj["private_ip"]);
-                            ret = true;
+                            errorMessage = errorObj.ToString();
                         }
                     }
-                    Console.WriteLine("Created Machine [" + machineName + "] having Private IP [" + privateIp + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
-                }
-                else
-                {
-                    Console.WriteLine("Error [" + errorMessage + "] in Creating Machine [" + machineName + "] for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "]");
-                }
 
-                #endregion
+                    #endregion
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
+                        long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+
+                        string? privateIp = "";
+                        if (retObj != null)
+                        {
+                            if (retObj.ContainsKey("private_ip") == true)
+                            {
+                                privateIp = ((string?)retObj["private_ip"]);
+                                ret = true;
+                            }
+                        }
+                        Console.WriteLine("Created Machine [" + machineName + "] having Private IP [" + privateIp + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error [" + errorMessage + "] in Creating Machine [" + machineName + "] for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "]");
+                    }
+
+                    #endregion
+                }
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine("CreateMachine :" + ex.Message + "In Region "  + machineRegion + " for AppName " + appName + ". Machine Name [" + machineName + "]");
+            }
             return ret;
         }
 
@@ -469,27 +475,30 @@ namespace Arshu.AppBak
             bool ret = false;
             long methodStartTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            #region Append Env Variables to Config
-
-            if (machineConfig.EnvConfig.Count > 0)
+            try
             {
-                if (updateConfigJson.ContainsKey("config") == true)
+                #region Append Env Variables to Config
+
+                if (machineConfig.EnvConfig.Count > 0)
                 {
-                    JsonObject? configObject = updateConfigJson["config"] as JsonObject;
-                    if (configObject != null)
+                    if (updateConfigJson.ContainsKey("config") == true)
                     {
-                        if (configObject.ContainsKey("env") == true)
+                        JsonObject? configObject = updateConfigJson["config"] as JsonObject;
+                        if (configObject != null)
                         {
-                            JsonObject? envObject = configObject["env"] as JsonObject;
-                            if (envObject != null)
+                            if (configObject.ContainsKey("env") == true)
                             {
-                                foreach (var itemEnv in machineConfig.EnvConfig)
+                                JsonObject? envObject = configObject["env"] as JsonObject;
+                                if (envObject != null)
                                 {
-                                    if (envObject.ContainsKey(itemEnv.EnvName) == false)
+                                    foreach (var itemEnv in machineConfig.EnvConfig)
                                     {
-                                        if (itemEnv.EnvValue != null)
+                                        if (envObject.ContainsKey(itemEnv.EnvName) == false)
                                         {
-                                            envObject.Add(itemEnv.EnvName, itemEnv.EnvValue);
+                                            if (itemEnv.EnvValue != null)
+                                            {
+                                                envObject.Add(itemEnv.EnvName, itemEnv.EnvValue);
+                                            }
                                         }
                                     }
                                 }
@@ -497,77 +506,81 @@ namespace Arshu.AppBak
                         }
                     }
                 }
-            }
-            #endregion
+                #endregion
 
-            #region Update Machine Request
+                #region Update Machine Request
 
-            string requestString = SerializeObject(updateConfigJson);
-            requestString = requestString.Replace("{{$AppImage}}", machineConfig.DockerImage);
-
-            #endregion
-
-            HttpClient httpClient = GetClient(FlyApiHostUrl);
-            {
-                httpClient.DefaultRequestHeaders.Accept.Clear();
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-
-                #region Update Machine
-
-                StringContent postData = new StringContent(requestString);
-                postData.Headers.Remove("Content-Type");
-                postData.Headers.Add("Content-Type", "application/json");
-
-                var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines/" + machineID, postData).Result;
-
-                #region Process Response
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
-                };
-                JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
-                string errorMessage = "";
-                if ((retObj != null) && (retObj.ContainsKey("error")))
-                {
-                    var errorObj = retObj["error"];
-                    if (errorObj != null)
-                    {
-                        errorMessage = errorObj.ToString();
-                    }
-                }
+                string requestString = SerializeObject(updateConfigJson);
+                requestString = requestString.Replace("{{$AppImage}}", machineConfig.DockerImage);
 
                 #endregion
 
-                if (response.IsSuccessStatusCode)
+                HttpClient httpClient = GetClient(FlyApiHostUrl);
                 {
-                    long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
-                    long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
 
-                    string? privateIp = "";
-                    if (retObj != null)
+                    #region Update Machine
+
+                    StringContent postData = new StringContent(requestString);
+                    postData.Headers.Remove("Content-Type");
+                    postData.Headers.Add("Content-Type", "application/json");
+
+                    var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines/" + machineID, postData).Result;
+
+                    #region Process Response
+
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+
+                    var options = new JsonSerializerOptions
                     {
-                        if (retObj.ContainsKey("private_ip") == true)
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
+                    string errorMessage = "";
+                    if ((retObj != null) && (retObj.ContainsKey("error")))
+                    {
+                        var errorObj = retObj["error"];
+                        if (errorObj != null)
                         {
-                            privateIp = ((string?)retObj["private_ip"]);
-                            ret = true;
+                            errorMessage = errorObj.ToString();
                         }
                     }
-                    Console.WriteLine("Updated Machine [" + machineName + "][" + machineID + "] having Private IP [" + privateIp + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
-                }
-                else
-                {
-                    Console.WriteLine("Error [" + errorMessage + "] in Updating Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "]");
-                }
 
-                #endregion
+                    #endregion
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
+                        long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+
+                        string? privateIp = "";
+                        if (retObj != null)
+                        {
+                            if (retObj.ContainsKey("private_ip") == true)
+                            {
+                                privateIp = ((string?)retObj["private_ip"]);
+                                ret = true;
+                            }
+                        }
+                        Console.WriteLine("Updated Machine [" + machineName + "][" + machineID + "] having Private IP [" + privateIp + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error [" + errorMessage + "] in Updating Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "] using Docker Image [" + machineConfig.DockerImage + "]");
+                    }
+
+                    #endregion
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("UpdateMachine :" + ex.Message + "In Region " + machineRegion + " for AppName " + appName + ". Machine Name [" + machineName + "] Machine ID [" + machineID + "]");
             }
 
             return ret;
@@ -578,85 +591,91 @@ namespace Arshu.AppBak
             bool ret = false;
             long methodStartTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            HttpClient httpClient = GetClient(FlyApiHostUrl);
+            try
             {
-                httpClient.DefaultRequestHeaders.Accept.Clear();
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-
-                #region Stop Machine
-
-                StringContent postData = new StringContent("");
-                postData.Headers.Remove("Content-Type");
-                postData.Headers.Add("Content-Type", "application/json");
-
-                var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines/" + machineID + "/stop", postData).Result;
-
-                #region Process Response
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-
-                var options = new JsonSerializerOptions
+                HttpClient httpClient = GetClient(FlyApiHostUrl);
                 {
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
-                };
-                JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
-                string errorMessage = "";
-                if ((retObj != null) && (retObj.ContainsKey("error")))
-                {
-                    var errorObj = retObj["error"];
-                    if (errorObj != null)
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+                    #region Stop Machine
+
+                    StringContent postData = new StringContent("");
+                    postData.Headers.Remove("Content-Type");
+                    postData.Headers.Add("Content-Type", "application/json");
+
+                    var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines/" + machineID + "/stop", postData).Result;
+
+                    #region Process Response
+
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+
+                    var options = new JsonSerializerOptions
                     {
-                        errorMessage = errorObj.ToString();
-                    }
-                }
-
-                #endregion
-
-                if (response.IsSuccessStatusCode)
-                {
-                    long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
-                    long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
-
-                    if (retObj != null)
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
+                    string errorMessage = "";
+                    if ((retObj != null) && (retObj.ContainsKey("error")))
                     {
-                        if (retObj.ContainsKey("ok") == true)
+                        var errorObj = retObj["error"];
+                        if (errorObj != null)
                         {
-                            object? okObj = retObj["ok"];
-                            if (okObj != null)
+                            errorMessage = errorObj.ToString();
+                        }
+                    }
+
+                    #endregion
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
+                        long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+
+                        if (retObj != null)
+                        {
+                            if (retObj.ContainsKey("ok") == true)
                             {
-                                string? okVal = okObj.ToString();
-                                if (string.IsNullOrEmpty(okVal) == false)
+                                object? okObj = retObj["ok"];
+                                if (okObj != null)
                                 {
-                                    if (bool.TryParse(okVal, out bool isStopped) == true)
+                                    string? okVal = okObj.ToString();
+                                    if (string.IsNullOrEmpty(okVal) == false)
                                     {
-                                        ret = isStopped;
+                                        if (bool.TryParse(okVal, out bool isStopped) == true)
+                                        {
+                                            ret = isStopped;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    if (ret == true)
-                    {
-                        Console.WriteLine("Stopped Machine [" + machineName + "][" + machineID + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                        if (ret == true)
+                        {
+                            Console.WriteLine("Stopped Machine [" + machineName + "][" + machineID + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error [" + errorMessage + "] in Stoping Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
+                        }
                     }
                     else
                     {
                         Console.WriteLine("Error [" + errorMessage + "] in Stoping Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
                     }
-                }
-                else
-                {
-                    Console.WriteLine("Error [" + errorMessage + "] in Stoping Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
-                }
 
-                #endregion
+                    #endregion
+                }
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine("StopMachine :" + ex.Message + "In Region " + machineRegion + " for AppName " + appName + ". Machine Name [" + machineName + "] Machine ID [" + machineID + "]");
+            }
             return ret;
         }
 
@@ -665,85 +684,91 @@ namespace Arshu.AppBak
             bool ret = false;
             long methodStartTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            HttpClient httpClient = GetClient(FlyApiHostUrl);
+            try
             {
-                httpClient.DefaultRequestHeaders.Accept.Clear();
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-
-                #region Start Machine
-
-                StringContent postData = new StringContent("");
-                postData.Headers.Remove("Content-Type");
-                postData.Headers.Add("Content-Type", "application/json");
-
-                var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines/" + machineID + "/start", postData).Result;
-
-                #region Process Response
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-
-                var options = new JsonSerializerOptions
+                HttpClient httpClient = GetClient(FlyApiHostUrl);
                 {
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
-                };
-                JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
-                string errorMessage = "";
-                if ((retObj != null) && (retObj.ContainsKey("error")))
-                {
-                    var errorObj = retObj["error"];
-                    if (errorObj != null)
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+                    #region Start Machine
+
+                    StringContent postData = new StringContent("");
+                    postData.Headers.Remove("Content-Type");
+                    postData.Headers.Add("Content-Type", "application/json");
+
+                    var response = httpClient.PostAsync("/v1/apps/" + appName + "/machines/" + machineID + "/start", postData).Result;
+
+                    #region Process Response
+
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+
+                    var options = new JsonSerializerOptions
                     {
-                        errorMessage = errorObj.ToString();
-                    }
-                }
-
-                #endregion
-
-                if (response.IsSuccessStatusCode)
-                {
-                    long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
-                    long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
-
-                    if (retObj != null)
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
+                    string errorMessage = "";
+                    if ((retObj != null) && (retObj.ContainsKey("error")))
                     {
-                        if (retObj.ContainsKey("ok") == true)
+                        var errorObj = retObj["error"];
+                        if (errorObj != null)
                         {
-                            object? okObj = retObj["ok"];
-                            if (okObj != null)
+                            errorMessage = errorObj.ToString();
+                        }
+                    }
+
+                    #endregion
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
+                        long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+
+                        if (retObj != null)
+                        {
+                            if (retObj.ContainsKey("ok") == true)
                             {
-                                string? okVal = okObj.ToString();
-                                if (string.IsNullOrEmpty(okVal) == false)
+                                object? okObj = retObj["ok"];
+                                if (okObj != null)
                                 {
-                                    if (bool.TryParse(okVal, out bool isStopped) == true)
+                                    string? okVal = okObj.ToString();
+                                    if (string.IsNullOrEmpty(okVal) == false)
                                     {
-                                        ret = isStopped;
+                                        if (bool.TryParse(okVal, out bool isStopped) == true)
+                                        {
+                                            ret = isStopped;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    if (ret == true)
-                    {
-                        Console.WriteLine("Stopped Machine [" + machineName + "][" + machineID + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                        if (ret == true)
+                        {
+                            Console.WriteLine("Stopped Machine [" + machineName + "][" + machineID + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error [" + errorMessage + "] in Stoping Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
+                        }
                     }
                     else
                     {
                         Console.WriteLine("Error [" + errorMessage + "] in Stoping Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
                     }
-                }
-                else
-                {
-                    Console.WriteLine("Error [" + errorMessage + "] in Stoping Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
-                }
 
-                #endregion
+                    #endregion
+                }
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine("StartMachine :" + ex.Message + "In Region " + machineRegion + " for AppName " + appName + ". Machine Name [" + machineName + "] Machine ID [" + machineID + "]");
+            }
             return ret;
         }
 
@@ -751,86 +776,91 @@ namespace Arshu.AppBak
         {
             bool ret = false;
             long methodStartTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-            HttpClient httpClient = GetClient(FlyApiHostUrl);
+            try
             {
-                httpClient.DefaultRequestHeaders.Accept.Clear();
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-
-                #region Delete Machine
-
-                StringContent postData = new StringContent("");
-                postData.Headers.Remove("Content-Type");
-                postData.Headers.Add("Content-Type", "application/json");
-
-                var response = httpClient.DeleteAsync("/v1/apps/" + appName + "/machines/" + machineID).Result;
-
-                #region Process Response
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-
-                var options = new JsonSerializerOptions
+                HttpClient httpClient = GetClient(FlyApiHostUrl);
                 {
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
-                };
-                JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
-                string errorMessage = "";
-                if ((retObj != null) && (retObj.ContainsKey("error")))
-                {
-                    var errorObj = retObj["error"];
-                    if (errorObj != null)
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+                    #region Delete Machine
+
+                    StringContent postData = new StringContent("");
+                    postData.Headers.Remove("Content-Type");
+                    postData.Headers.Add("Content-Type", "application/json");
+
+                    var response = httpClient.DeleteAsync("/v1/apps/" + appName + "/machines/" + machineID).Result;
+
+                    #region Process Response
+
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+
+                    var options = new JsonSerializerOptions
                     {
-                        errorMessage = errorObj.ToString();
-                    }
-                }
-
-                #endregion
-
-                if (response.IsSuccessStatusCode)
-                {
-                    long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
-                    long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
-
-                    if (retObj != null)
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    JsonObject? retObj = JsonSerializer.Deserialize<JsonObject>(jsonContent, options);
+                    string errorMessage = "";
+                    if ((retObj != null) && (retObj.ContainsKey("error")))
                     {
-                        if (retObj.ContainsKey("ok") == true)
+                        var errorObj = retObj["error"];
+                        if (errorObj != null)
                         {
-                            object? okObj = retObj["ok"];
-                            if (okObj != null)
+                            errorMessage = errorObj.ToString();
+                        }
+                    }
+
+                    #endregion
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        long methodDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - methodStartTimestamp;
+                        long deployDiffTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - deployStartTimestamp;
+
+                        if (retObj != null)
+                        {
+                            if (retObj.ContainsKey("ok") == true)
                             {
-                                string? okVal = okObj.ToString();
-                                if (string.IsNullOrEmpty(okVal) == false)
+                                object? okObj = retObj["ok"];
+                                if (okObj != null)
                                 {
-                                    if (bool.TryParse(okVal, out bool isDeleted) == true)
+                                    string? okVal = okObj.ToString();
+                                    if (string.IsNullOrEmpty(okVal) == false)
                                     {
-                                        ret = isDeleted;
+                                        if (bool.TryParse(okVal, out bool isDeleted) == true)
+                                        {
+                                            ret = isDeleted;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    if (ret == true)
-                    {
-                        Console.WriteLine("Deleted Machine [" + machineName + "][" + machineID + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                        if (ret == true)
+                        {
+                            Console.WriteLine("Deleted Machine [" + machineName + "][" + machineID + "] Successfully for AppName [" + appName + "] under Region [" + machineRegion + "][" + deployDiffTime.ToString("####.##") + "sec][" + methodDiffTime.ToString("####.##") + "sec]");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error [" + errorMessage + "] in Deleting Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
+                        }
                     }
                     else
                     {
                         Console.WriteLine("Error [" + errorMessage + "] in Deleting Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
                     }
-                }
-                else
-                {
-                    Console.WriteLine("Error [" + errorMessage + "] in Deleting Machine [" + machineName + "][" + machineID + "] for AppName [" + appName + "] under Region [" + machineRegion + "]");
-                }
 
-                #endregion
+                    #endregion
+                }
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine("DeleteMachine :" + ex.Message + "In Region " + machineRegion + " for AppName " + appName + ". Machine Name [" + machineName + "] Machine ID [" + machineID + "]");
+            }
             return ret;
         }
 
@@ -1018,7 +1048,7 @@ namespace Arshu.AppBak
                                                     int nextMachineIndex = currentMachineIndex + 1;
                                                     string nextMachineName = machineInfo.MachineName.Substring(0, lastDashIndex) + "_" + nextMachineIndex;
                                                     bool createSuccessfull = await CreateMachine(actionConfig.ApiToken, actionConfig.AppName, machineConfig, createConfigJson, nextMachineName, machineInfo.MachineRegion, deployStartTimestamp).ConfigureAwait(false);
-                                                    if (createSuccessfull ==true)
+                                                    if (createSuccessfull == true)
                                                     {
                                                         bool machinedStopped = await StopMachine(actionConfig.ApiToken, actionConfig.AppName, machineInfo.MachineID, machineInfo.MachineName, machineInfo.MachineRegion, deployStartTimestamp).ConfigureAwait(false);
                                                         if (machinedStopped == true)

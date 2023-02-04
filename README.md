@@ -4,9 +4,11 @@ Create/Update/Stop/Start/Destroy Multiple Machines in FLY by configuring in Json
 
 ![Deployed Fly Machines in 26 Regions](screenshots/deployed_app.png) "Deployed 26 Fly Machines in all Fly Regions".
 
+# Prerequisites after installing FlyCtl from https://fly.io/docs/hands-on/install-flyctl/ and doing the below
+
 Ensure the API Token is filled in the App Configuration. 
 
-# Prerequisites after installing FlyCtl from https://fly.io/docs/hands-on/install-flyctl/
+Ensure you have setup a Wireguard Connection to the Fly Network as Documented in https://fly.io/docs/machines/working-with-machines/
 
 <pre>
 
