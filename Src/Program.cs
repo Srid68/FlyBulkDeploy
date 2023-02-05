@@ -233,7 +233,28 @@ namespace Arshu.AppBak
 
                             #region Process Deploy Config
 
-                            await ProcessConfig(deployStartTimestamp, currentMachineConfigDirectory, actionConfig);
+                            if (string.IsNullOrEmpty(actionConfig.ApiToken) == false)
+                            {
+                                if (string.IsNullOrEmpty(actionConfig.AppName) == false)
+                                {
+                                    if (string.IsNullOrEmpty(actionConfig.OrgName) == false)
+                                    {
+                                        await ProcessConfig(deployStartTimestamp, currentMachineConfigDirectory, actionConfig);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Skipping Processing " + itemConfigInfo.ConfigPath + " Since OrgName is Empty");
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Skipping Processing " + itemConfigInfo.ConfigPath + " Since ApiToken is Empty");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Skipping Processing " + itemConfigInfo.ConfigPath + " Since ApiToken is Empty");
+                            }
 
                             #endregion
 
@@ -244,9 +265,10 @@ namespace Arshu.AppBak
                         {
                             Console.WriteLine("Not Found Action Config [" + itemConfigInfo.ConfigPath + "]");
                         }
-
-                        //Console.WriteLine("Press Enter key to execute the next deploy config");
-                        //Console.ReadLine();
+                    }
+                    else if (itemConfigInfo != null)
+                    {
+                        Console.WriteLine("Skipping Process Config File [" + itemConfigInfo.ConfigPath + "] since Process is Not True");                            
                     }
                 }
             }
@@ -1004,10 +1026,12 @@ namespace Arshu.AppBak
                         || (machineConfig.Action.Contains("Create", StringComparison.OrdinalIgnoreCase) == true)
                         || (machineConfig.Action.Contains("Update", StringComparison.OrdinalIgnoreCase) == true))
                     {
+                        bool foundRegionEnabled = false;
                         foreach (RegionConfig itemRegion in actionConfig.RegionConfig)
                         {
                             if (itemRegion.Process == true)
                             {
+                                foundRegionEnabled = true;
                                 Dictionary<string, MachineInfo> actionMachineInfoList = GetActionMachineInfoList(existingMachineList, itemRegion.RegionCode, actionConfig.AppName);
 
                                 foreach (var item in actionMachineInfoList)
@@ -1078,14 +1102,21 @@ namespace Arshu.AppBak
                                 }
                             }
                         }
+
+                        if (foundRegionEnabled ==false)
+                        {
+                            Console.WriteLine("No Region Enabled for App Name " + actionConfig.AppName + " to Create or Update Machine");
+                        }
                     }
 
                     if (machineConfig.Action.Contains("Stop", StringComparison.OrdinalIgnoreCase) == true)
                     {
+                        bool foundRegionEnabled = false;
                         foreach (RegionConfig itemRegion in actionConfig.RegionConfig)
                         {
                             if (itemRegion.Process == true)
                             {
+                                foundRegionEnabled = true;
                                 Dictionary<string, MachineInfo> actionMachineInfoList = GetActionMachineInfoList(existingMachineList, itemRegion.RegionCode, actionConfig.AppName);
 
                                 foreach (var item in actionMachineInfoList)
@@ -1102,14 +1133,21 @@ namespace Arshu.AppBak
                                 }
                             }
                         }
+
+                        if (foundRegionEnabled == false)
+                        {
+                            Console.WriteLine("No Region Enabled for App Name " + actionConfig.AppName + " to Stop Machine");
+                        }
                     }
 
                     if (machineConfig.Action.Contains("Start", StringComparison.OrdinalIgnoreCase) == true)
                     {
+                        bool foundRegionEnabled = false;
                         foreach (RegionConfig itemRegion in actionConfig.RegionConfig)
                         {
                             if (itemRegion.Process == true)
                             {
+                                foundRegionEnabled = true;
                                 Dictionary<string, MachineInfo> actionMachineInfoList = GetActionMachineInfoList(existingMachineList, itemRegion.RegionCode, actionConfig.AppName);
 
                                 foreach (var item in actionMachineInfoList)
@@ -1126,14 +1164,22 @@ namespace Arshu.AppBak
                                 }
                             }
                         }
+
+                        if (foundRegionEnabled == false)
+                        {
+                            Console.WriteLine("No Region Enabled for App Name " + actionConfig.AppName + " to Start Machine");
+                        }
+
                     }
 
                     if (machineConfig.Action.Contains("Delete", StringComparison.OrdinalIgnoreCase) == true)
                     {
+                        bool foundRegionEnabled = false;
                         foreach (RegionConfig itemRegion in actionConfig.RegionConfig)
                         {
                             if (itemRegion.Process == true)
                             {
+                                foundRegionEnabled = true;
                                 Dictionary<string, MachineInfo> actionMachineInfoList = GetActionMachineInfoList(existingMachineList, itemRegion.RegionCode, actionConfig.AppName);
 
                                 foreach (var item in actionMachineInfoList)
@@ -1150,14 +1196,22 @@ namespace Arshu.AppBak
                                 }
                             }
                         }
+
+                        if (foundRegionEnabled == false)
+                        {
+                            Console.WriteLine("No Region Enabled for App Name " + actionConfig.AppName + " to Delete Machine");
+                        }
+
                     }
 
                     if (machineConfig.Action.Contains("Destroy", StringComparison.OrdinalIgnoreCase) == true)
                     {
+                        bool foundRegionEnabled = false;
                         foreach (RegionConfig itemRegion in actionConfig.RegionConfig)
                         {
                             if (itemRegion.Process == true)
                             {
+                                foundRegionEnabled = true;
                                 Dictionary<string, MachineInfo> actionMachineInfoList = GetActionMachineInfoList(existingMachineList, itemRegion.RegionCode, actionConfig.AppName);
 
                                 foreach (var item in actionMachineInfoList)
@@ -1178,6 +1232,12 @@ namespace Arshu.AppBak
                                 }
                             }
                         }
+
+                        if (foundRegionEnabled == false)
+                        {
+                            Console.WriteLine("No Region Enabled for App Name " + actionConfig.AppName + " to Destroy (Stop/Delete) Machine");
+                        }
+
                     }
                 }
                 else

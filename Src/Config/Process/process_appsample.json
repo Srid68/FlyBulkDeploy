@@ -1,6 +1,6 @@
 {
   "ApiUser": "",
-  "ApiToken": "",
+  "ApiToken": "Z1549hXnLflnbbhlVxGUPP99hTD_GcaJZ6qkzmA6EeM",
   "OrgName": "personal",
   "AppName": "appweb",
   "ActionInterval": 1000,
@@ -130,5 +130,5 @@
       "RegionCode": "yyz",
       "Process": false
     }
-  ],
+  ]
 }
