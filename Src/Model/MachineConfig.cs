@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Arshu.FlyDeploy.Model
@@ -19,5 +20,11 @@ namespace Arshu.FlyDeploy.Model
         public string MachineUpdateTemplate { get; set; } = "machine_update.json";
 
         public List<EnvConfig> EnvConfig { get; set; } = new List<EnvConfig>();
+
+        [JsonConstructor]
+        public MachineConfig()
+        {
+
+        }
     }
 }

@@ -80,7 +80,7 @@ namespace Arshu.FlyDeploy.Utility
                 Output.Clear();
             }
             List<string> output = new List<string>();
-            Process process = new Process();
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
             try
             {
                 output = Strategy2(this.fileName, this.args, process, workingDirectory, this.cancellationToken);
@@ -111,7 +111,7 @@ namespace Arshu.FlyDeploy.Utility
         }
 
         //TODO: is there an issue if the command doesn't output anything (or is this a pipe problem?)
-        private List<string> Strategy2(string fileName, string args, Process process, string workingDirectory, CancellationToken cancellationToken)
+        private List<string> Strategy2(string fileName, string args, System.Diagnostics.Process process, string workingDirectory, CancellationToken cancellationToken)
         {
             var stdout = new List<string>();
             var stderr = new List<string>();

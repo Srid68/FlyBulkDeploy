@@ -11,6 +11,7 @@ using System.IO.IsolatedStorage;
 
 using Arshu.FlyDeploy.Utility;
 using Arshu.FlyDeploy.Model;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Arshu.AppBak
 {
@@ -66,7 +67,7 @@ namespace Arshu.AppBak
             return retObj;
         }
 
-        public static string SerializeObject(object jsonObject)
+        public static string SerializeObject<T>(T jsonObject)
         {
             string jsonString = String.Empty;
 
@@ -78,7 +79,7 @@ namespace Arshu.AppBak
                 DefaultIgnoreCondition = JsonIgnoreCondition.Never,
                 DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
             };
-            string retJsonString = JsonSerializer.Serialize(jsonObject, options);
+            string retJsonString = JsonSerializer.Serialize<T>(jsonObject, options);
             if (retJsonString != null) { jsonString = retJsonString; }
 
             return jsonString;
@@ -415,7 +416,7 @@ namespace Arshu.AppBak
 
                 #region Create Machine Request
 
-                string requestString = SerializeObject(createConfigJson);
+                string requestString = SerializeObject<JsonObject>(createConfigJson);
                 requestString = requestString.Replace("{{$MachineName}}", machineName);
                 requestString = requestString.Replace("{{$Region}}", machineRegion);
                 requestString = requestString.Replace("{{$AppImage}}", machineConfig.DockerImage);
@@ -532,7 +533,7 @@ namespace Arshu.AppBak
 
                 #region Update Machine Request
 
-                string requestString = SerializeObject(updateConfigJson);
+                string requestString = SerializeObject<JsonObject>(updateConfigJson);
                 requestString = requestString.Replace("{{$AppImage}}", machineConfig.DockerImage);
 
                 #endregion

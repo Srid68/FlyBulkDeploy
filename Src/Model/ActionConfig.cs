@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Arshu.FlyDeploy.Model
@@ -24,6 +25,7 @@ namespace Arshu.FlyDeploy.Model
 
         #region Constructor
 
+        [JsonConstructor]
         public ActionConfig(string apiUser, string apiToken, string appName)
         {
             ApiUser = apiUser;
